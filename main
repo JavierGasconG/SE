@@ -200,7 +200,9 @@ int listenerRueda(){
 
      ADCON0bits.GO_DONE=1; //Calcula escoria
      while(ADCON0bits.GO_DONE==1); //Espera a que termine
-     lectura_analog= ADRESL + (ADRESH *256); //Pillamos el resultado de buena forma
+    lectura_analog = ADRESH;
+     lectura_analog <<=8;
+     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
 
  
 	
@@ -220,7 +222,9 @@ int ListenerHumedad(){
 
      ADCON0bits.GO_DONE=1; //Calcula escoria
      while(ADCON0bits.GO_DONE==1);//Espera a que termine
-     lectura_analog= ADRESL + (ADRESH *256); //Pillamos el resultado de buena forma
+    lectura_analog = ADRESH;
+     lectura_analog <<=8;
+     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
 	
  
 	lectura_conv = (lectura_analog * 5) / 65535;
@@ -236,7 +240,9 @@ float ListenerLum(){
 
      ADCON0bits.GO_DONE=1; //Calcula escoria
      while(ADCON0bits.GO_DONE==1);//Espera a que termine
-     lectura_analog= ADRESL + (ADRESH *256); //Pillamos el resultado de buena forma
+     lectura_analog = ADRESH;
+     lectura_analog <<=8;
+     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
 
 	lectura_conv = (lectura_analog * 5) / 65535;
 	
@@ -250,7 +256,9 @@ float ListenerTempInt(){
 
      ADCON0bits.GO_DONE=1; //Calcula escoria
      while(ADCON0bits.GO_DONE==1);//Espera a que termine
-     lectura_analog= ADRESL + (ADRESH *256); //Pillamos el resultado de buena forma
+     lectura_analog = ADRESH;
+     lectura_analog <<=8;
+     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
  
  
 	
@@ -264,7 +272,9 @@ float ListenerTempExt(){
 
      ADCON0bits.GO_DONE=1; //Conversion en curso
      while(ADCON0bits.GO_DONE==1);//Espera a que termine
-     lectura_analog= ADRESL + (ADRESH *256); //Pillamos el resultado de buena forma
+     lectura_analog = ADRESH;
+     lectura_analog <<=8;
+     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
 
 	lectura_conv = (lectura_analog * 5) / 65535;
 	
