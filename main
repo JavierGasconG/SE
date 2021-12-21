@@ -1,0 +1,348 @@
+#include <xc.h>
+#include <stdio.h>
+#include <math.h>
+// See /opt/microchip/xc8/v{ver}/docs/chips/16f886.html
+// for details on #pragma config
+
+#pragma config CPD = OFF, BOREN = OFF, IESO = OFF, DEBUG = OFF, FOSC = HS
+#pragma config FCMEN = OFF, MCLRE = ON, WDTE = OFF, CP = OFF, LVP = OFF
+#pragma config PWRTE = ON, BOR4V = BOR21V, WRT = OFF
+
+
+#define PIN_HUMEDAD 9// AN9      
+#define PIN_LUMINOSIDAD 11// AN11
+#define PIN_RUEDA 13       // AN13 
+#define PIN_TEMP_INTERIOR 10 // AN10  
+#define PIN_TEMP_EXTERIOR 8// AN8  
+
+//Variables Globales (puaj)
+
+char x = 0;
+int cont = 0;
+int cont2 = 0;
+int contCambioConsigna=0;
+int consigna=0;
+int calefactor = 1;
+int  humedad=0;    
+float tempInt=0;   //Los he cambiado a float porque creo que es mejor asi (creo)
+float tempExt=0;
+float luminosidad=0;
+int media=0;
+int FinInicio=0;
+int valores [4]=[0,0,0,0];
+int lectura_analog = 0;  
+float lectura_conv = 0.0;  
+
+void initADC(void){
+    ADCON0bits.ADCS = 0b10;   // reloj con frecuencia Fosc/32.
+    ADCON0bits.GO_DONE = 0b0; // Initially not in progress.
+    ADCON0bits.ADON = 0b1;    // Enable ADC.
+
+    ADCON1bits.ADFM = 0b1;    // Ajustar a la derecha.
+    ADCON1bits.VCFG1 = 0b0;   // Vss de referencia.
+    ADCON1bits.VCFG0 = 0b0;   // Vdd de referencia.
+}
+void init_Calefacto(void){
+//tris a 1
+TRISCbits.TRISC1=1;
+
+PR2=167;
+
+CCP1CONbits.CCP1M3=1;
+CCP1CONbits.CCP1M2=1;
+CCP1CONbits.CCP1M1=0;
+CCP1CONbits.CCP1M0=0;
+CCP1CONbits.P1M0=0;
+CCP1CONbits.P1M1=0;
+CCPR1L=0; //valor maximo = 166
+
+//interrupciones
+PIR1bits.TMR2IF=0;
+PIE1bits.TMR2IE=1;
+INTCONbits.GIE=1;
+INTCONbits.PEIE=1;
+
+//configurar puertos A<0:1> como salida e inicializarlos a 0
+TRISA.TRISA0=0; //calefactor
+TRISA.TRISA1=0; //refrigerador
+PORTA.RA0=0;
+PORTA.RA1=0;
+
+
+//preescalado del Timer2
+T2CONbits.T2CKPS0=1;
+T2CONbits.T2CKPS1=0; 
+
+//Timer2
+
+T2CONbits.TMR2ON=1;
+
+}
+void init_T0(){
+    OPTION_REGbits.T0CS=0;    //Fosc=MHZ/4.
+    OPTION_REGbits.PSA =0;    //PREESCALADO ASIGNADO EN MODULO TIMER0.
+    OPTION_REGbits.PS=0b111;  //PREESCALADO DE 256.
+    INTCONbits.T0IE=1;        //BIT INTERRUPCIONES.
+    TMR0=158;                 //Valor registro timer0. queremos esperar 5 milisegundos  (creo)
+}
+void __interrupt() INT_T0(void){
+    TMR0= 158;
+    int valor = 0;   
+    if(PIR1bits.TMR2IF==1){
+        PIR1bits.TMR2IF=0;
+        TRISCbits.TRISC1=0;
+        PIE1bits.TMR2IE=0;
+        INTCONbits.T0IF=0;
+    }
+    if(INTCONbits.T0IF==1){
+        cont++;
+        if(FinInicio==1){
+            if(cont==10000){//0.25s==250ms{
+                cont=0; 
+                valor = listenerRueda();  //No entiendo como manejas la rueda
+                if(valor==-1){
+                    cont2=0;
+                    calefactor=0; 
+                }else {
+                    
+                    valores[cont2]=valor;
+                    float diferencia = 0.0;
+                    if(cont2>0){
+                        diferencia= valores[cont2]- valores[cont2-1];
+                    }else{
+                        diferencia= valores[cont2]- valores[3];
+                    }
+                    if(diferencia>0.5 || diferencia<-0.5){
+                        contCambioConsigna=0;
+                    }else{
+                        contCambioConsigna++;
+                    }
+                    if(contCambioConsigna==20){
+                        consigna=entero;
+                    }
+                    if(cont2==3){
+                        cont2=0;
+                        media=valores[0]+valores[1]+valores[2]+valores[3];
+                        media=media/4;
+                    }else{
+                        cont2++;
+                    }
+                }
+                humedad= ListenerHumedad();
+                tempInt=ListenerTempInt();
+                tempExt=ListenerTempExt();
+                luminosidad=ListenerLum();
+                if(calefactor){
+                    mostrarTDatos();
+                }else{
+                    mostrarSinConsigna();
+                }
+           
+            }
+        }
+        else {
+            if(cont==120000){//3s
+              FinInicio=1;  
+              calefactor=1;
+            } 
+        }
+        INTCONbits.T0IF=0;
+    }
+    
+}
+
+void calefactor(){
+ while(1==1){
+    while(FinInicio == 0){} //esperando monitoreo
+
+    while(calefactor == 0){} //esperando modo calefactor
+
+    while(calefactor == 1){
+	    if (tempInt - consigna >= 0.5){
+		    //calcular % de activacion del PWM y asignacion
+		    CCPR1L = 42+1.4*(tempInt-consigna);
+            //Desactivar calefactor
+            PORTA.RA0=0;
+		    //activar refrigerador
+            PORTA.RA1=1;
+	    }else{
+		    if(consigna - tempInt >=0.5){
+			    //calcular % de activacion del PWM y asignacion
+			    CCPR1L = 42+1.4*(consigna-tempInt);
+                //Desactivar refrigerador
+                PORTA.RA1=0;
+                //activar calefactor
+                PORTA.RA0=1;
+		    }else{
+            //PWM a 0
+            CCPR1L = 0;
+            //desactivar calefactor
+            PORTA.RA0=0;
+            //desactivar refrigerador
+            PORTA.RA1=0;
+            }
+        }
+    }
+        //Termina para siempre, aunque creo que no es necesario
+        //PWM a 0
+        CCPR1L = 0;
+        //desactivar calefactor
+        PORTA.RA0=0;
+        //desactivar refrigerador
+        PORTA.RA1=0;
+}
+}
+
+int listenerRueda(){
+ ADCON0bits.CHS = PIN_RUEDA;  // Seleccionamos el canal 
+ 
+
+
+     ADCON0bits.GO_DONE=1; //Calcula escoria
+     while(ADCON0bits.GO_DONE==1); //Espera a que termine
+     lectura_analog= ADRESL + (ADRESH *256); //Pillamos el resultado de buena forma
+
+ 
+	
+	
+	if(lectura_analog > 39321)
+		return -1;
+	else
+  return lectura_analog /655 ; //De verdad que no entiendo como has hecho la rueda
+
+}
+
+
+int ListenerHumedad(){
+ ADCON0bits.CHS = PIN_HUMEDAD;  // Seleccionamos el canal  
+
+
+
+     ADCON0bits.GO_DONE=1; //Calcula escoria
+     while(ADCON0bits.GO_DONE==1);//Espera a que termine
+     lectura_analog= ADRESL + (ADRESH *256); //Pillamos el resultado de buena forma
+	
+ 
+	lectura_conv = (lectura_analog * 5) / 65535;
+
+return (lectura_conv - 0.75)/0.03;  //Por como funciona (creo) recordar
+
+}
+
+
+float ListenerLum(){
+ ADCON0bits.CHS = PIN_LUMINOSIDAD;  // Seleccionamos el canal 
+
+
+     ADCON0bits.GO_DONE=1; //Calcula escoria
+     while(ADCON0bits.GO_DONE==1);//Espera a que termine
+     lectura_analog= ADRESL + (ADRESH *256); //Pillamos el resultado de buena forma
+
+	lectura_conv = (lectura_analog * 5) / 65535;
+	
+ return lectura_conv / (3.8 * pow(10, -4)) ; 
+}
+
+
+float ListenerTempInt(){
+ ADCON0bits.CHS = PIN_TEMP_INTERIOR;  // Seleccionamos el canal 
+
+
+     ADCON0bits.GO_DONE=1; //Calcula escoria
+     while(ADCON0bits.GO_DONE==1);//Espera a que termine
+     lectura_analog= ADRESL + (ADRESH *256); //Pillamos el resultado de buena forma
+ 
+ 
+	
+	
+return  lectura_analog/ (float)58;  //Porque el control de temp lo hace el calefactor no?
+}
+
+float ListenerTempExt(){
+ ADCON0bits.CHS = PIN_TEMP_EXTERIOR;  // Seleccionamos el canal 
+
+
+     ADCON0bits.GO_DONE=1; //Conversion en curso
+     while(ADCON0bits.GO_DONE==1);//Espera a que termine
+     lectura_analog= ADRESL + (ADRESH *256); //Pillamos el resultado de buena forma
+
+	lectura_conv = (lectura_analog * 5) / 65535;
+	
+ return (lectura_conv-0.5)/0.01 ; // Vout = Tc(0.01)* TA  + V0 (0.5)
+}
+
+
+void mostrarTDatos(){
+    //Cabiado cosas para que salgan lños floats
+    printf("----Modo con calefactor----\r\n")
+
+    printf("Consigna: %d \r\n",consigna);
+    printf("TempInt: %.2f \r\n",tempInt);
+    printf("TempExt: %.2f \r\n",tempExt);
+    printf("Luminosidad: %.2f \r\n",luminosidad);
+    printf("Humedad: %d \r\n",humedad);
+    
+}
+void mostrarSinConsigna(){
+    printf("----Modo sin calefactor----\r\n");
+    printf("TempInt: %.2f \r\n",tempInt);
+    printf("TempExt: %.2f \r\n",tempExt);
+    printf("Luminosidad: %.2f \r\n",luminosidad);
+    printf("Humedad: %d \r\n",humedad);
+    
+}
+void init_uart(void)
+{  /* See chapter 12.3 PIC16F886 manual (table 12-5) */
+
+  TXSTAbits.BRGH = 0;
+  BAUDCTLbits.BRG16 = 0;
+
+  // SPBRGH:SPBRG = 
+  SPBRGH = 0;
+  SPBRG = 32;  // 9600 baud rate with 20MHz Clock
+  
+  TXSTAbits.SYNC = 0; /* Asynchronous */
+  TXSTAbits.TX9 = 0; /* TX 8 data bit */
+  RCSTAbits.RX9 = 0; /* RX 8 data bit */
+
+  PIE1bits.TXIE = 0; /* Disable TX interrupt */
+  PIE1bits.RCIE = 0; /* Disable RX interrupt */
+
+  RCSTAbits.SPEN = 1; /* Serial port enable */
+
+  TXSTAbits.TXEN = 0; /* Reset transmitter */
+  TXSTAbits.TXEN = 1; /* Enable transmitter */
+  
+ }
+
+/* It is needed for printf */
+void putch(char c)
+{ 
+    while(!TXSTAbits.TRMT);
+    TXREG = c;
+ }     
+void main(void) {
+    OSCCON = 0b00001000;
+    TRISB=0;
+    INTCONbits.GIE=1;   // Interrupciones activadas
+    INTCONbits.T0IF=0;
+    
+    //Inicializamos puertos como entrada/salida
+    TRISBbits.TRISB1 = 1; // Temp Interior
+    TRISBbits.TRISB2 = 1; // Temp exterior
+    TRISBbits.TRISB3 = 1; // Humedad
+    TRISBbits.TRISB4 = 1; // Intensidad luz
+    TRISBbits.TRISB5 = 1; // Potenciometro
+    init_Calefacto();
+    initADC();
+    init_uart();
+    init_T0();
+    printf("Bien benido\r\n");
+    cont=0;
+    calefactor();
+    while(1==1){
+        
+    }
+    return;
+}
+ 
