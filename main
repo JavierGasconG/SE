@@ -24,7 +24,7 @@ int contCambioConsigna=0;
 int consigna=0;
 int calefactor = 1;
 int  humedad=0;    
-float tempInt=0;   //Los he cambiado a float porque creo que es mejor asi (creo)
+float tempInt=0;  
 float tempExt=0;
 float luminosidad=0;
 int media=0;
@@ -99,7 +99,7 @@ void __interrupt() INT_T0(void){
         if(FinInicio==1){
             if(cont==10000){//0.25s==250ms{
                 cont=0; 
-                valor = listenerRueda();  //No entiendo como manejas la rueda
+                valor = listenerRueda();  
                 if(valor==-1){
                     cont2=0;
                     calefactor=0; 
