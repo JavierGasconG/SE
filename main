@@ -18,7 +18,7 @@
 //Variables Globales (puaj)
 
 char x = 0;
-int cont = 0;
+long cont = 0;
 int cont2 = 0;
 int contCambioConsigna=0;
 int consigna=0;
