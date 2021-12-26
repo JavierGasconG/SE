@@ -97,7 +97,7 @@ void __interrupt() INT_T0(void){
     if(INTCONbits.T0IF==1){
         cont++;
         if(FinInicio==1){
-            if(cont==10000){//0.25s==250ms{
+            if(cont==10000){//0.25s==250ms
                 cont=0; 
                 valor = listenerRueda();  
                 if(valor==-1){
@@ -198,11 +198,11 @@ int listenerRueda(){
  
 
 
-     ADCON0bits.GO_DONE=1; //Calcula escoria
+     ADCON0bits.GO_DONE=1; 
      while(ADCON0bits.GO_DONE==1); //Espera a que termine
     lectura_analog = ADRESH;
      lectura_analog <<=8;
-     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
+     lectura_analog|=ADRESL; //Cogemos el resultado de buena forma
 
  
 	
@@ -219,11 +219,11 @@ ADCON0bits.CHS = PIN_HUMEDAD;  // Seleccionamos el canal
 
 
 
-     ADCON0bits.GO_DONE=1; //Calcula escoria
+     ADCON0bits.GO_DONE=1; 
      while(ADCON0bits.GO_DONE==1);//Espera a que termine
     lectura_analog = ADRESH;
      lectura_analog <<=8;
-     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
+     lectura_analog|=ADRESL; //Cogemos el resultado de buena forma
 	
  
 	lectura_conv = (lectura_analog * 5) / 1023;
@@ -236,11 +236,11 @@ void ListenerLum(){
  ADCON0bits.CHS = PIN_LUMINOSIDAD;  // Seleccionamos el canal 
 
 
-     ADCON0bits.GO_DONE=1; //Calcula escoria
+     ADCON0bits.GO_DONE=1; 
      while(ADCON0bits.GO_DONE==1);//Espera a que termine
      lectura_analog = ADRESH;
      lectura_analog <<=8;
-     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
+     lectura_analog|=ADRESL; //Cogemos el resultado de buena forma
 
 	lectura_conv = (lectura_analog * 5) / 1023;
 	
@@ -252,11 +252,11 @@ void ListenerTempInt(){
 ADCON0bits.CHS = PIN_TEMP_INTERIOR;  // Seleccionamos el canal 
 
 
-     ADCON0bits.GO_DONE=1; //Calcula escoria
+     ADCON0bits.GO_DONE=1; 
      while(ADCON0bits.GO_DONE==1);//Espera a que termine
      lectura_analog = ADRESH;
      lectura_analog <<=8;
-     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
+     lectura_analog|=ADRESL; //Cogemos el resultado de buena forma
  
      lectura_analog*=5;
      lectura_analog/=1023;
@@ -274,7 +274,7 @@ void ListenerTempExt(){
      while(ADCON0bits.GO_DONE==1);//Espera a que termine
      lectura_analog = ADRESH;
      lectura_analog <<=8;
-     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
+     lectura_analog|=ADRESL; //Cogemos el resultado de buena forma
 
 	lectura_conv = (lectura_analog * 5) ;
     lectura_conv = lectura_conv/ 1023;
