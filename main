@@ -229,8 +229,7 @@ int ListenerHumedad(){
  
 	lectura_conv = (lectura_analog * 5) / 65535;
 
-return (lectura_conv - 0.75)/0.03;  //Por como funciona (creo) recordar
-
+return (lectura_conv - 0.75)/0.03;  
 }
 
 
@@ -263,7 +262,7 @@ float ListenerTempInt(){
  
 	
 	
-return  lectura_analog/ (float)58;  //Porque el control de temp lo hace el calefactor no?
+return  lectura_analog/ (float)58;  
 }
 
 float ListenerTempExt(){
