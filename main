@@ -287,7 +287,7 @@ void ListenerTempExt(){
 
 
 void mostrarTDatos(){
-    //Cabiado cosas para que salgan lños floats
+    
     printf("----Modo con calefactor----\r\n")
 
     printf("Consigna: %d \r\n",consigna);
