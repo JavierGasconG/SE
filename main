@@ -1,6 +1,6 @@
 #include <xc.h>
 #include <stdio.h>
-#include <math.h>
+
 // See /opt/microchip/xc8/v{ver}/docs/chips/16f886.html
 // for details on #pragma config
 
@@ -15,7 +15,7 @@
 #define PIN_TEMP_INTERIOR 10 // AN10  
 #define PIN_TEMP_EXTERIOR 8// AN8  
 
-//Variables Globales (puaj)
+//Variables Globales
 
 char x = 0;
 long cont = 0;
@@ -23,13 +23,13 @@ int cont2 = 0;
 int contCambioConsigna=0;
 int consigna=0;
 int calefactor = 1;
-int  humedad=0;    
-float tempInt=0;  
-float tempExt=0;
-float luminosidad=0;
+float  humedad=0.0;    
+float tempInt=0.0;   
+float tempExt=0.0;
+float luminosidad=0.0;
 int media=0;
 int FinInicio=0;
-int valores [4]=[0,0,0,0];
+int valores [4]={0,0,0,0};
 int lectura_analog = 0;  
 float lectura_conv = 0.0;  
 
@@ -63,10 +63,10 @@ INTCONbits.GIE=1;
 INTCONbits.PEIE=1;
 
 //configurar puertos A<0:1> como salida e inicializarlos a 0
-TRISA.TRISA0=0; //calefactor
-TRISA.TRISA1=0; //refrigerador
-PORTA.RA0=0;
-PORTA.RA1=0;
+TRISAbits.TRISA0=0; //calefactor
+TRISAbits.TRISA1=0; //refrigerador
+PORTAbits.RA0=0;
+PORTAbits.RA1=0;
 
 
 //preescalado del Timer2
@@ -83,7 +83,7 @@ void init_T0(){
     OPTION_REGbits.PSA =0;    //PREESCALADO ASIGNADO EN MODULO TIMER0.
     OPTION_REGbits.PS=0b111;  //PREESCALADO DE 256.
     INTCONbits.T0IE=1;        //BIT INTERRUPCIONES.
-    TMR0=158;                 //Valor registro timer0. queremos esperar 5 milisegundos  (creo)
+    TMR0=158;                 //Valor registro timer0. 
 }
 void __interrupt() INT_T0(void){
     TMR0= 158;
@@ -128,10 +128,10 @@ void __interrupt() INT_T0(void){
                         cont2++;
                     }
                 }
-                humedad= ListenerHumedad();
-                tempInt=ListenerTempInt();
-                tempExt=ListenerTempExt();
-                luminosidad=ListenerLum();
+                ListenerHumedad();
+                ListenerTempInt();
+                ListenerTempExt();
+                ListenerLum();
                 if(calefactor){
                     mostrarTDatos();
                 }else{
@@ -160,26 +160,26 @@ void calefactor(){
     while(calefactor == 1){
 	    if (tempInt - consigna >= 0.5){
 		    //calcular % de activacion del PWM y asignacion
-		    CCPR1L = 42+1.4*(tempInt-consigna);
+		    CCPR1L = (int)(42+1.4*(tempInt-consigna));
             //Desactivar calefactor
-            PORTA.RA0=0;
+            PORTAbits.RA0=0;
 		    //activar refrigerador
-            PORTA.RA1=1;
+            PORTAbits.RA1=1;
 	    }else{
 		    if(consigna - tempInt >=0.5){
 			    //calcular % de activacion del PWM y asignacion
-			    CCPR1L = 42+1.4*(consigna-tempInt);
+			    CCPR1L = (int)(42+1.4*(consigna-tempInt));
                 //Desactivar refrigerador
-                PORTA.RA1=0;
+                PORTAbits.RA1=0;
                 //activar calefactor
-                PORTA.RA0=1;
+                PORTAbits.RA0=1;
 		    }else{
             //PWM a 0
             CCPR1L = 0;
             //desactivar calefactor
-            PORTA.RA0=0;
+            PORTAbits.RA0=0;
             //desactivar refrigerador
-            PORTA.RA1=0;
+            PORTAbits.RA1=0;
             }
         }
     }
@@ -187,14 +187,14 @@ void calefactor(){
         //PWM a 0
         CCPR1L = 0;
         //desactivar calefactor
-        PORTA.RA0=0;
+        PORTAbits.RA0=0;
         //desactivar refrigerador
-        PORTA.RA1=0;
+        PORTAbits.RA1=0;
 }
 }
 
 int listenerRueda(){
- ADCON0bits.CHS = PIN_RUEDA;  // Seleccionamos el canal 
+  ADCON0bits.CHS = PIN_RUEDA;  // Seleccionamos el canal 
  
 
 
@@ -207,16 +207,15 @@ int listenerRueda(){
  
 	
 	
-	if(lectura_analog > 39321)
+	if(lectura_analog > 1023)
 		return -1;
 	else
-  return lectura_analog /655 ; //De verdad que no entiendo como has hecho la rueda
-
+  return (int)(lectura_analog /10.23 );
 }
 
 
-int ListenerHumedad(){
- ADCON0bits.CHS = PIN_HUMEDAD;  // Seleccionamos el canal  
+void ListenerHumedad(){
+ADCON0bits.CHS = PIN_HUMEDAD;  // Seleccionamos el canal  
 
 
 
@@ -227,13 +226,13 @@ int ListenerHumedad(){
      lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
 	
  
-	lectura_conv = (lectura_analog * 5) / 65535;
+	lectura_conv = (lectura_analog * 5) / 1023;
 
-return (lectura_conv - 0.75)/0.03;  
+humedad= (int)((lectura_conv - 0.75)/0.03); 
 }
 
 
-float ListenerLum(){
+void ListenerLum(){
  ADCON0bits.CHS = PIN_LUMINOSIDAD;  // Seleccionamos el canal 
 
 
@@ -243,14 +242,14 @@ float ListenerLum(){
      lectura_analog <<=8;
      lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
 
-	lectura_conv = (lectura_analog * 5) / 65535;
+	lectura_conv = (lectura_analog * 5) / 1023;
 	
- return lectura_conv / (3.8 * pow(10, -4)) ; 
+ luminosidad= lectura_conv / (3.8 /10000) ; 
 }
 
 
-float ListenerTempInt(){
- ADCON0bits.CHS = PIN_TEMP_INTERIOR;  // Seleccionamos el canal 
+void ListenerTempInt(){
+ADCON0bits.CHS = PIN_TEMP_INTERIOR;  // Seleccionamos el canal 
 
 
      ADCON0bits.GO_DONE=1; //Calcula escoria
@@ -259,14 +258,16 @@ float ListenerTempInt(){
      lectura_analog <<=8;
      lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
  
- 
+     lectura_analog*=5;
+     lectura_analog/=1023;
+     lectura_analog*=60;
 	
 	
-return  lectura_analog/ (float)58;  
+tempInt= lectura_analog/ 3.75;
 }
 
-float ListenerTempExt(){
- ADCON0bits.CHS = PIN_TEMP_EXTERIOR;  // Seleccionamos el canal 
+void ListenerTempExt(){
+  ADCON0bits.CHS = PIN_TEMP_EXTERIOR;  // Seleccionamos el canal 
 
 
      ADCON0bits.GO_DONE=1; //Conversion en curso
@@ -275,9 +276,13 @@ float ListenerTempExt(){
      lectura_analog <<=8;
      lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
 
-	lectura_conv = (lectura_analog * 5) / 65535;
+	lectura_conv = (lectura_analog * 5) ;
+    lectura_conv = lectura_conv/ 1023;
+    lectura_conv= lectura_conv - 0.5;
+    lectura_conv =lectura_conv/0.01;
+    tempExt= lectura_conv;
 	
- return (lectura_conv-0.5)/0.01 ; // Vout = Tc(0.01)* TA  + V0 (0.5)
+  // Vout = Tc(0.01)* TA  + V0 (0.5)
 }
 
 
@@ -289,7 +294,7 @@ void mostrarTDatos(){
     printf("TempInt: %.2f \r\n",tempInt);
     printf("TempExt: %.2f \r\n",tempExt);
     printf("Luminosidad: %.2f \r\n",luminosidad);
-    printf("Humedad: %d \r\n",humedad);
+    printf("Humedad: %.2f \r\n",humedad);
     
 }
 void mostrarSinConsigna(){
@@ -297,7 +302,7 @@ void mostrarSinConsigna(){
     printf("TempInt: %.2f \r\n",tempInt);
     printf("TempExt: %.2f \r\n",tempExt);
     printf("Luminosidad: %.2f \r\n",luminosidad);
-    printf("Humedad: %d \r\n",humedad);
+    printf("Humedad: %.2f \r\n",humedad);
     
 }
 void init_uart(void)
