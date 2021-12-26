@@ -183,8 +183,6 @@ void calefactor(){
             }
         }
     }
-        //Termina para siempre, aunque creo que no es necesario
-        //PWM a 0
         CCPR1L = 0;
         //desactivar calefactor
         PORTAbits.RA0=0;
@@ -194,15 +192,15 @@ void calefactor(){
 }
 
 int listenerRueda(){
-  ADCON0bits.CHS = PIN_RUEDA;  // Seleccionamos el canal 
+  ADCON0bits.CHS = PIN_RUEDA;  
  
 
 
-     ADCON0bits.GO_DONE=1; //Calcula escoria
-     while(ADCON0bits.GO_DONE==1); //Espera a que termine
+     ADCON0bits.GO_DONE=1; 
+     while(ADCON0bits.GO_DONE==1); 
     lectura_analog = ADRESH;
      lectura_analog <<=8;
-     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
+     lectura_analog|=ADRESL; 
 
  
 	
@@ -215,15 +213,15 @@ int listenerRueda(){
 
 
 void ListenerHumedad(){
-ADCON0bits.CHS = PIN_HUMEDAD;  // Seleccionamos el canal  
+ADCON0bits.CHS = PIN_HUMEDAD;  
 
 
 
-     ADCON0bits.GO_DONE=1; //Calcula escoria
-     while(ADCON0bits.GO_DONE==1);//Espera a que termine
+     ADCON0bits.GO_DONE=1; 
+     while(ADCON0bits.GO_DONE==1);
     lectura_analog = ADRESH;
      lectura_analog <<=8;
-     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
+     lectura_analog|=ADRESL; 
 	
  
 	lectura_conv = (lectura_analog * 5) / 1023;
@@ -233,14 +231,14 @@ humedad= (int)((lectura_conv - 0.75)/0.03);
 
 
 void ListenerLum(){
- ADCON0bits.CHS = PIN_LUMINOSIDAD;  // Seleccionamos el canal 
+ ADCON0bits.CHS = PIN_LUMINOSIDAD;  
 
 
-     ADCON0bits.GO_DONE=1; //Calcula escoria
-     while(ADCON0bits.GO_DONE==1);//Espera a que termine
+     ADCON0bits.GO_DONE=1;
+     while(ADCON0bits.GO_DONE==1);
      lectura_analog = ADRESH;
      lectura_analog <<=8;
-     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
+     lectura_analog|=ADRESL; 
 
 	lectura_conv = (lectura_analog * 5) / 1023;
 	
@@ -249,14 +247,13 @@ void ListenerLum(){
 
 
 void ListenerTempInt(){
-ADCON0bits.CHS = PIN_TEMP_INTERIOR;  // Seleccionamos el canal 
+ADCON0bits.CHS = PIN_TEMP_INTERIOR;  
 
-
-     ADCON0bits.GO_DONE=1; //Calcula escoria
-     while(ADCON0bits.GO_DONE==1);//Espera a que termine
+     ADCON0bits.GO_DONE=1; 
+     while(ADCON0bits.GO_DONE==1);
      lectura_analog = ADRESH;
      lectura_analog <<=8;
-     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
+     lectura_analog|=ADRESL; 
  
      lectura_analog*=5;
      lectura_analog/=1023;
@@ -267,14 +264,14 @@ tempInt= lectura_analog/ 3.75;
 }
 
 void ListenerTempExt(){
-  ADCON0bits.CHS = PIN_TEMP_EXTERIOR;  // Seleccionamos el canal 
+  ADCON0bits.CHS = PIN_TEMP_EXTERIOR; 
 
 
-     ADCON0bits.GO_DONE=1; //Conversion en curso
-     while(ADCON0bits.GO_DONE==1);//Espera a que termine
+     ADCON0bits.GO_DONE=1; 
+     while(ADCON0bits.GO_DONE==1);
      lectura_analog = ADRESH;
      lectura_analog <<=8;
-     lectura_analog|=ADRESL; //Pillamos el resultado de buena forma
+     lectura_analog|=ADRESL; 
 
 	lectura_conv = (lectura_analog * 5) ;
     lectura_conv = lectura_conv/ 1023;
@@ -287,9 +284,8 @@ void ListenerTempExt(){
 
 
 void mostrarTDatos(){
-    //Cabiado cosas para que salgan lños floats
+   
     printf("----Modo con calefactor----\r\n")
-
     printf("Consigna: %d \r\n",consigna);
     printf("TempInt: %.2f \r\n",tempInt);
     printf("TempExt: %.2f \r\n",tempExt);
@@ -311,7 +307,7 @@ void init_uart(void)
   TXSTAbits.BRGH = 0;
   BAUDCTLbits.BRG16 = 0;
 
-  // SPBRGH:SPBRG = 
+  
   SPBRGH = 0;
   SPBRG = 32;  // 9600 baud rate with 20MHz Clock
   
